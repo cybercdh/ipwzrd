@@ -110,14 +110,9 @@ func main() {
 					ec2, _ := IsEC2IPAddress(job.ip)
 
 					if ec2 != nil {
-						// color.Green.Printf("%s,%s,%s,%s\n", job.domain, job.ip.String(), ec2.IPPrefix, ec2.Region)
-						color.Green.Printf("%s,%s,%s\n", job.domain, host[0], job.ip.String())
+						color.Green.Printf("%s,%s,%s\n", job.domain, hostOrIP(host), job.ip.String())
 					} else {
-						if len(host) > 0 {
-							fmt.Printf("%s,%s,%s\n", job.domain, host[0], job.ip.String())
-						} else {
-							fmt.Printf("%s,%s\n", job.domain, job.ip.String())
-						}
+						fmt.Printf("%s,%s\n", job.domain, strings.Join([]string{hostOrIP(host), job.ip.String()}, ","))
 					}
 				}
 			}

@@ -110,3 +110,13 @@ func GetEc2IpAddressRanges() ([]Prefix, error) {
 	return ec2Prefixes, nil
 
 }
+
+/*
+takes a slice and returns the first element, or not if empty
+*/
+func hostOrIP(hostnames []string) string {
+	if len(hostnames) > 0 {
+		return hostnames[0]
+	}
+	return ""
+}
