@@ -79,6 +79,26 @@ func IsEC2IPAddress(ip net.IP) (*Prefix, error) {
 }
 
 /*
+parses a slice of S3 CIDR's
+and checks if an IP is within any of the ranges
+returns the prefix that the IP is contained in
+*/
+func IsS3IPAddress(ip net.IP) (*Prefix, error) {
+
+	for _, prefix := range s3s {
+
+		_, ipNet, err := net.ParseCIDR(prefix.IPPrefix)
+		if err != nil {
+			return nil, err
+		}
+		if ipNet.Contains(ip) {
+			return &prefix, nil
+		}
+	}
+	return nil, fmt.Errorf("IP %s not found in an S3 prefix range\n", ip.String())
+}
+
+/*
 parses the latest list of EC2 IP ranges as published by AWS
 returns a slice of the Prefix structs which contains the
 prefix range, the service and the region
@@ -112,6 +132,39 @@ func GetEc2IpAddressRanges() ([]Prefix, error) {
 }
 
 /*
+parses the latest list of EC2 IP ranges as published by AWS
+returns a slice of the Prefix structs which contains the
+prefix range, the service and the region
+*/
+func GetS3IpAddressRanges() ([]Prefix, error) {
+
+	url := "https://ip-ranges.amazonaws.com/ip-ranges.json"
+
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	var data Response
+	err = json.NewDecoder(response.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	// filter out the ip_prefixes for EC2 service
+	var s3Prefixes []Prefix
+
+	for _, prefix := range data.Prefixes {
+		if prefix.Service == "S3" {
+			s3Prefixes = append(s3Prefixes, prefix)
+		}
+	}
+	return s3Prefixes, nil
+
+}
+
+/*
 takes a slice and returns the first element, or not if empty
 */
 func hostOrIP(hostnames []string) string {
@@ -119,4 +172,13 @@ func hostOrIP(hostnames []string) string {
 		return hostnames[0]
 	}
 	return ""
+}
+
+func getStatusCode(uri string) (int, error) {
+	resp, err := http.Get(uri)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
 }

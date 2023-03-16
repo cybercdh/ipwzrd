@@ -1,9 +1,9 @@
 /*
-ipwzrd
+bucketeer
 
 takes a list of domains piped from stdin
 looks up the A record for each
-if the A record is an IP address, checks if the IP is alive
+if the A record is an IP address, checks if
 if the IP is dead, it prints
 also highlights if the IP is an EC2 host
 
@@ -30,6 +30,7 @@ var concurrency int
 var domains = make(chan string, 1)
 var jobs = make(chan *Job)
 var ec2s []Prefix
+var s3s []Prefix
 
 /*
 prints the usage if no input is provided to the program
@@ -50,6 +51,11 @@ func init() {
 	}
 
 	ec2s, err = GetEc2IpAddressRanges()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	s3s, err = GetS3IpAddressRanges()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -115,6 +121,23 @@ func main() {
 						fmt.Printf("%s,%s\n", job.domain, strings.Join([]string{hostOrIP(host), job.ip.String()}, ","))
 					}
 				}
+
+				// check if the A record points to an S3 bucket
+				s3, _ := IsS3IPAddress(job.ip)
+
+				// generate the S3 URI
+				if s3 != nil {
+					s3uri := fmt.Sprintf("http://%s.s3-website-%s.amazonaws.com", job.domain, s3.Region)
+					status, err := getStatusCode(s3uri)
+					if err != nil {
+						log.Println(err)
+					}
+					if status != 200 {
+						color.Green.Printf("%s,%s\n", job.domain, s3uri)
+					}
+				}
+				// http://[domain].s3-website-[region].amazonaws.com
+				// http://secret.velvetsweat.shop.s3-website-us-east-1.amazonaws.com
 			}
 		}()
 	}
