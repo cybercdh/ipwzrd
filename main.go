@@ -1,5 +1,5 @@
 /*
-bucketeer
+ipwzrd
 
 takes a list of domains piped from stdin
 looks up the A record for each
@@ -19,7 +19,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -30,7 +29,6 @@ var concurrency int
 var domains = make(chan string, 1)
 var jobs = make(chan *Job)
 var ec2s []Prefix
-var s3s []Prefix
 
 /*
 prints the usage if no input is provided to the program
@@ -43,22 +41,13 @@ func print_usage() {
 ensures the current ec2 cidr ranges can be obtained
 */
 func init() {
+
 	var err error
-
-	// check if the Go version is supported
-	if !strings.HasPrefix(runtime.Version(), "go1.19") {
-		log.Fatalln("This program requires Go version 1.19 or higher.")
-	}
-
 	ec2s, err = GetEc2IpAddressRanges()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	s3s, err = GetS3IpAddressRanges()
-	if err != nil {
-		log.Fatalln(err)
-	}
 }
 
 func main() {
@@ -122,22 +111,6 @@ func main() {
 					}
 				}
 
-				// check if the A record points to an S3 bucket
-				s3, _ := IsS3IPAddress(job.ip)
-
-				// generate the S3 URI
-				if s3 != nil {
-					s3uri := fmt.Sprintf("http://%s.s3-website-%s.amazonaws.com", job.domain, s3.Region)
-					status, err := getStatusCode(s3uri)
-					if err != nil {
-						log.Println(err)
-					}
-					if status != 200 {
-						color.Green.Printf("%s,%s\n", job.domain, s3uri)
-					}
-				}
-				// http://[domain].s3-website-[region].amazonaws.com
-				// http://secret.velvetsweat.shop.s3-website-us-east-1.amazonaws.com
 			}
 		}()
 	}
@@ -145,9 +118,11 @@ func main() {
 	// check for input piped to stdin
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error:", err)
+		return
 	}
-	if info.Mode()&os.ModeCharDevice != 0 || info.Size() <= 0 {
+
+	if info.Mode()&os.ModeCharDevice != 0 || (info.Mode()&os.ModeNamedPipe == 0 && info.Size() <= 0) {
 		print_usage()
 	}
 
