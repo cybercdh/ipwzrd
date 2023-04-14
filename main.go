@@ -78,6 +78,11 @@ func main() {
 					continue
 				}
 
+				// ignore case of A record being blank
+				if ip.Equal(net.ParseIP("0.0.0.0")) {
+					continue
+				}
+
 				job := &Job{}
 				job.domain = domain
 				job.ip = ip
