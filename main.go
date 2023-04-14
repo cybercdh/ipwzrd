@@ -6,6 +6,7 @@ looks up the A record for each
 if the A record is an IP address, checks if
 if the IP is dead, it prints
 also highlights if the IP is an EC2 host
+ignores RFC1918 Private IPs
 
 the aim is to provide a list of IP addresses that may be vulnerable to a takeover
 */
@@ -69,6 +70,11 @@ func main() {
 
 				ip, err := GetARecordIP(domain)
 				if err != nil {
+					continue
+				}
+
+				// check if the IP address is RFC1918 and ignore
+				if ip.IsPrivate() {
 					continue
 				}
 
