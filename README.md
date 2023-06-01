@@ -15,7 +15,14 @@ go install github.com/cybercdh/ipwzrd@latest
 
 ```bash
 cat <domains> | ipwzrd
+````
+or
+```bash
+ipwzrd example.com
+```
 
+Options:
+```
 Usage of ipwzrd:
   -c int
     	set the concurrency level (default 20)
