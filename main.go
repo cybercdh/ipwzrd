@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -221,6 +222,21 @@ assuming there are any
 */
 func GetARecordIP(domain string) ([]net.IP, error) {
 
+	// a list of dns resolvers to randomly choose from
+	resolvers := []string{
+		"1.1.1.1:53",
+		"1.0.0.1:53",
+		"8.8.8.8:53",
+		"8.8.4.4:53",
+		"9.9.9.9:53",
+	}
+
+	// seed to randomly select dns server
+	rand.Seed(time.Now().UnixNano())
+
+	// get a random resolver
+	resolver := resolvers[rand.Intn(len(resolvers))]
+
 	// slice of IPs
 	var out []net.IP
 
@@ -230,7 +246,7 @@ func GetARecordIP(domain string) ([]net.IP, error) {
 	client := new(dns.Client)
 
 	// ask
-	resp, _, err := client.Exchange(msg, "8.8.8.8:53")
+	resp, _, err := client.Exchange(msg, resolver)
 	if err != nil {
 		return nil, err
 	}
