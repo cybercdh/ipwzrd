@@ -104,7 +104,8 @@ func main() {
 				// 2. get the A record and see if it's dead
 				ips, err := GetARecordIP(domain)
 				if err != nil {
-					log.Fatalln(err)
+					log.Println(err)
+					continue
 				}
 
 				// see if any IPs in the A record are dead
